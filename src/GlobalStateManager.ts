@@ -1,9 +1,9 @@
-import { State, hookstate } from "@hookstate/core";
-import { TavernCardV2 } from "./spec";
-import * as Cards from 'character-card-utils';
-import { Png } from "./Png";
+import { State, hookstate } from '@hookstate/core'
+import { TavernCardV2 } from './spec'
+import * as Cards from 'character-card-utils'
+import { Png } from './Png'
 
-const STORAGE_KEY: string = "cardData"
+const STORAGE_KEY: string = 'cardData'
 
 export class GlobalStateManager {
     static globalState: State<TavernCardV2>
@@ -13,8 +13,7 @@ export class GlobalStateManager {
         const savedCard = localStorage.getItem(STORAGE_KEY)
         if (savedCard) {
             this.globalState = hookstate(JSON.parse(savedCard) as TavernCardV2)
-        }
-        else {
+        } else {
             this.globalState = hookstate(this.createNewCharacterCard())
         }
 
@@ -26,12 +25,12 @@ export class GlobalStateManager {
     }
 
     static clear() {
-        localStorage.setItem(STORAGE_KEY, "")
+        localStorage.setItem(STORAGE_KEY, '')
         this.globalState.set(this.createNewCharacterCard())
     }
 
     static async import(file: File) {
-        if (file.type === "application/json") {
+        if (file.type === 'application/json') {
             try {
                 const data = JSON.parse(await file.text())
 
@@ -40,24 +39,27 @@ export class GlobalStateManager {
                     this.globalState.set(result.data)
                     this.save()
                 } else throw new SyntaxError()
-            }
-            catch {
+            } catch {
                 alert("I couldn't parse that character card, sorry.")
             }
-        }
-        else if (file.type === "image/png") {
+        } else {
             try {
                 const dataString = Png.Parse(await file.arrayBuffer())
                 const data = JSON.parse(dataString)
-
                 const result = Cards.safeParseToV2(data)
-
                 if (result.success) {
+                    if (data?.data?.character_book) {
+                        const d = data?.data?.character_book
+                        if (!d.extensions) d.extensions = {}
+                        const book = Cards.book.safeParse(d)
+                        // console.log('[ book ] >', book)
+                        result.data.data.character_book = book.data
+                    }
                     this.globalState.set(result.data)
                     this.save()
                 } else throw new SyntaxError()
-            }
-            catch {
+            } catch (error) {
+                console.log('[ error ] >', error)
                 alert("I couldn't parse that character card, sorry.")
             }
         }
@@ -69,17 +71,16 @@ export class GlobalStateManager {
             const cardData = JSON.stringify(this.globalState.value)
             const oldImageData = await file.arrayBuffer()
             const newImageData = Png.Generate(oldImageData, cardData)
-            const newFileName = `${this.globalState.data.name.value || "character"}.png`
-            const newFile = new File([newImageData], newFileName, { type: "image/png" })
+            const newFileName = `${this.globalState.data.name.value || 'character'}.png`
+            const newFile = new File([newImageData], newFileName, { type: 'image/png' })
 
             const link = window.URL.createObjectURL(newFile)
 
-            const a = document.createElement("a")
-            a.setAttribute("download", newFileName)
-            a.setAttribute("href", link)
+            const a = document.createElement('a')
+            a.setAttribute('download', newFileName)
+            a.setAttribute('href', link)
             a.click()
-        }
-        catch {
+        } catch {
             alert("I couldn't export this character card, sorry.")
         }
     }
@@ -88,19 +89,19 @@ export class GlobalStateManager {
         const newCard = new TavernCardV2()
 
         newCard.data = {
-            name: "",
-            description: "",
-            personality: "",
-            scenario: "",
-            first_mes: "",
-            mes_example: "",
-            creator_notes: "",
-            system_prompt: "",
-            post_history_instructions: "",
+            name: '',
+            description: '',
+            personality: '',
+            scenario: '',
+            first_mes: '',
+            mes_example: '',
+            creator_notes: '',
+            system_prompt: '',
+            post_history_instructions: '',
             alternate_greetings: [],
             tags: [],
-            creator: "",
-            character_version: "",
+            creator: '',
+            character_version: '',
             extensions: {},
         }
 
